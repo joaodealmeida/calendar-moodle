@@ -50,6 +50,8 @@ require_once('../config.php');
 require_once($CFG->dirroot.'/calendar/event_form.php');
 require_once($CFG->dirroot.'/calendar/lib.php');
 require_once($CFG->dirroot.'/course/lib.php');
+require_once($CFG->dirroot.'/mod/hsuforum/externallib.php');
+
 
 require_login();
 
@@ -155,13 +157,16 @@ if ($eventid !== 0) {
     }
 }
 
+
 $properties = $event->properties(true);
 $formoptions->event = $event;
 $formoptions->hasduration = ($event->timeduration > 0);
 $mform = new event_form(null, $formoptions);
 $mform->set_data($properties);
 $data = $mform->get_data();
-if ($data) {
+
+
+if ($data) {    
     if ($data->duration == 1) {
         $data->timeduration = $data->timedurationuntil- $data->timestart;
     } else if ($data->duration == 2) {
@@ -181,9 +186,27 @@ if ($data) {
         $eventurl->param('course', $event->courseid);
     }
     $eventurl->set_anchor('event_'.$event->id);
+    
+    /*
+     *
+     *  Create a post everytime a new event is being created and anchor it.
+     *
+     *  Developed by: Joao Almeida | contact@joaoalmeida.me
+     */
+    error_log( print_r( $data, true ) );
+    $forumAPI = mod_hsuforum_external::add_discussion(/*$forumid*/'1', $event->name/*$subject*/, $event->description/*$message*/);
+    $discussionId = $forumAPI['discussionid'];
+    
+    $data->description['text'] .= '<br>
+                                    <div style="text-align:center;">
+                                        <a href="http://ny-v-dev03/mod/hsuforum/discuss.php?d=' . $discussionId . '" class="btn btn-info center-block">DISCUSSION
+                                    </a></div>';
+    $data->id = $event->id;
+    $event->update($data);
+    
     redirect($eventurl);
 }
-
+    
 $viewcalendarurl = new moodle_url(CALENDAR_URL.'view.php', $PAGE->url->params());
 $viewcalendarurl->remove_params(array('id', 'action'));
 $viewcalendarurl->param('view', 'upcoming');
