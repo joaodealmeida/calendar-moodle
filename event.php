@@ -123,17 +123,17 @@ if ($eventid !== 0) {
     $event->course = $courseid;
     $event->timedurationuntil = $event->timestart + $event->timeduration;
     $event->count_repeats();
-
+    
     if (!calendar_add_event_allowed($event)) {
         print_error('nopermissions');
     }
-
+    
     // Check to see if this event is part of a subscription or import.
     // If so display a warning on edit.
     if (isset($event->subscriptionid) && ($event->subscriptionid != null)) {
         \core\notification::add(get_string('eventsubscriptioneditwarning', 'calendar'), \core\output\notification::NOTIFY_INFO);
     }
-
+    
 } else {
     $title = get_string('newevent', 'calendar');
     calendar_get_allowed_types($formoptions->eventtypes, $course);
@@ -166,7 +166,7 @@ $mform->set_data($properties);
 $data = $mform->get_data();
 
 
-if ($data) {    
+if ($data) {
     if ($data->duration == 1) {
         $data->timeduration = $data->timedurationuntil- $data->timestart;
     } else if ($data->duration == 2) {
@@ -174,9 +174,9 @@ if ($data) {
     } else {
         $data->timeduration = 0;
     }
-
+    
     $event->update($data);
-
+    
     $params = array(
         'view' => 'day',
         'time' => $event->timestart,
@@ -193,20 +193,39 @@ if ($data) {
      *
      *  Developed by: Joao Almeida | contact@joaoalmeida.me
      */
-    error_log( print_r( $data, true ) );
-    $forumAPI = mod_hsuforum_external::add_discussion(/*$forumid*/'1', $event->name/*$subject*/, $event->description/*$message*/);
-    $discussionId = $forumAPI['discussionid'];
     
-    $data->description['text'] .= '<br>
+    if ($event->eventtype == 'course'){
+    	
+    	$forumId = 0;
+    	$forumsAvailable = mod_hsuforum_external::get_forums_by_courses(array($event->courseid));
+    	
+    	foreach ($forumsAvailable as $forum) {
+    		 
+    		if(strpos($forum->name, 'Events') !==false){
+    			$forumId = $forum->id;
+    			break;
+    		}
+    	
+    	}
+    	
+    	if($forumId != 0){
+    	
+    		$forumAPI = mod_hsuforum_external::add_discussion($forumId, $event->name, $event->description);
+    		$discussionId = $forumAPI['discussionid'];
+    		$data->description['text'] .= '<br>
                                     <div style="text-align:center;">
-                                        <a href="http://ny-v-dev03/mod/hsuforum/discuss.php?d=' . $discussionId . '" class="btn btn-info center-block">DISCUSSION
+                                        <a href=" ' . new moodle_url('/mod/hsuforum/discuss.php', array('d' => $discussionId)) .'" class="btn btn-info center-block">DISCUSSION
                                     </a></div>';
-    $data->id = $event->id;
-    $event->update($data);
+    		$data->id = $event->id;
+    		$event->update($data);
+    	}
+    	
+    }
+    
     
     redirect($eventurl);
 }
-    
+
 $viewcalendarurl = new moodle_url(CALENDAR_URL.'view.php', $PAGE->url->params());
 $viewcalendarurl->remove_params(array('id', 'action'));
 $viewcalendarurl->param('view', 'upcoming');
