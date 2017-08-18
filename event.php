@@ -222,13 +222,6 @@ if ($data) {
     	
     }
     
-    /*
-     *
-     *  End of changes
-     *
-     *  Developed by: Joao Almeida | contact@joaoalmeida.me
-     */
-    
     
     redirect($eventurl);
 }

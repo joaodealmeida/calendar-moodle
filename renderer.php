@@ -27,6 +27,7 @@ if (!defined('MOODLE_INTERNAL')) {
     die('Direct access to this script is forbidden.');    ///  It must be included from a Moodle page
 }
 
+
 /**
  * The primary renderer for the calendar.
  */
@@ -226,6 +227,9 @@ class core_calendar_renderer extends plugin_renderer_base {
      */
     public function event(calendar_event $event, $showactions=true) {
         global $CFG;
+        global $USER;
+
+        require_once($CFG->dirroot . '/local/eventattendance/lib.php');
 
         $event = calendar_add_event_metadata($event);
         $context = $event->context;
@@ -312,6 +316,39 @@ class core_calendar_renderer extends plugin_renderer_base {
         if (!empty($eventdetailshtml)) {
             $output .= html_writer::tag('div', $eventdetailshtml, array('class' => $eventdetailsclasses));
         }
+
+        /*
+        *
+        * Custom Implementation of attendance in the core Calendar
+        * @copyright   2017 Joao Almeida <contact@joaoalmeida.me>
+ `      * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+        *
+        */
+
+        $output .= '<div class="header" style="margin: 10px 0px 10px 0px;"><h3 class="attendance name">People Attending</h3></div>';
+        $output .= '<div class="attendance" style="display: inline-flex;">';
+        $output .= render_event_attendees($event->id);
+        $output .= '</div>';
+
+
+        if(!check_user_attendance($event->id, $USER->id)){
+
+            $output .= '<div class="box card-header clearfix">
+                            <a href="' . new moodle_url("/local/eventattendance/attendance.php",  array('id'=>$event->id)) . '" class="btn btn-success" role="button">I\'m going</a>
+                        </div>';
+
+        }
+        else {
+            $output .= '<div class="box card-header clearfix">
+                        <a href="' . new moodle_url("/local/eventattendance/attendance.php",  array('id'=>$event->id)) . '" class="btn btn-danger" style="background-color: #da4f49;" role="button">I can\'t go</a>     
+                    </div>';
+        }
+
+        /*
+        *
+        * END OF CUSTOM IMPLEMENTATION
+        *
+        */
 
         $eventhtml = html_writer::tag('div', $output, array('class' => 'card'));
         return html_writer::tag('div', $eventhtml, array('class' => 'event', 'id' => 'event_' . $event->id));
